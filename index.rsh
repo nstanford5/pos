@@ -9,42 +9,46 @@ export const main = Reach.App(() => {
     purchase: Fun([UInt], Null),
     refund: Fun([], UInt),
   });
-  const C = API('Seller', {
-    payout: Fun([], Null),
-  });
   init();
   A.only(() => {
     const min = declassify(interact.min);
   });
   A.publish(min);
+  commit();
   A.interact.launched(getContract());
-
+  A.publish();
+  // can you add .pay a supply of non-network tokens, pay those, then return?
   const pMap = new Map(UInt);
-  pMap[A] = 0;
-  const [count] = parallelReduce([0])
-    .invariant(balance() == pMap.sum(), "balance accurate")
+  const end = lastConsensusTime() + min;
+  const [count, total] = parallelReduce([0, 0])
     .invariant(pMap.size() == count, "count accurate")
-    .while(true)
+    .invariant(balance() == total, "balance accurate")
+    // this compiles, but the functions are not callable
+    .while(lastConsensusTime() <= end)
     .api_(B.purchase, (amount) => {
       check(amount > min, "amount too low");
       check(isNone(pMap[this]), "your transaction has already been processed");
+      check(end < thisConsensusTime(), "too late")
       return[amount, (ret) => {
+        enforce(end > thisConsensusTime(), "too late");// commenting these out throws balance errors
         pMap[this] = amount;
         ret(null);
-        return[count + 1];
+        return[count + 1, total + amount];
       }];
     })
     .api_(B.refund, () => {
       check(isSome(pMap[this]), "sorry, you are not in the list");
+      check(end > thisConsensusTime(), "too late");
       return[ (ret) => {
+        enforce(end < thisConsensusTime(), "too late");
         const paid = fromSome(pMap[this], 0);
         transfer(paid).to(this);
         ret(paid);
         delete pMap[this];
-        return[count - 1];
+        return[count - 1, total - paid];
       }];
     })
+    transfer(total).to(A);
     commit();
     exit();
-
 });

@@ -3,9 +3,10 @@ import * as backend from './build/index.main.mjs';
 const stdlib = loadStdlib({REACH_NO_WARN: 'Y'});
 const MIN_PRICE = 10;// price
 const USERS = 10;// users + refunds(at loop)
+const FAILS = 2;
 const accA = await stdlib.newTestAccount(stdlib.parseCurrency(5000));
 const ctcA = accA.contract(backend);
-const loyalTok = await stdlib.launchToken(accA, "Loyalty", "LYL", {supply: MAX});
+const loyalTok = await stdlib.launchToken(accA, "Loyalty", "LYL", {supply: USERS});
 let sales = 0;
 
 console.log('Welcome to the ticket distributor\nLets get you a ticket');
@@ -18,7 +19,7 @@ const startBuyers = async () => {
     await acc.tokenAccept(loyalTok.id);
     cost = (i == 0 ? 0 : cost)
     try{
-      await ctc.apis.Buyer.buyTicket(cost);
+      await ctc.apis.Buyer.purchase(cost);
       sales++;
       console.log(`Purchases made: ${sales}`);
     } catch (e) {
@@ -29,11 +30,10 @@ const startBuyers = async () => {
       const amt = await ctc.apis.Buyer.refund();
       sales--;
       console.log(`Customer ${i} is getting a refund of ${amt}`);
-      console.log(`Tickets sold: ${sold}`);
+      console.log(`Purchases made: ${sales}`);
     }
   }// end of runBuyer
-  // adding the failed tests to the loop
-  for(let i = 0; i < USERS + 2; i++){
+  for(let i = 0; i < USERS + FAILS; i++){
     await runBuyer(i);
   }
 }// end of startBuyers

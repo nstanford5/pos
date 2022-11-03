@@ -19,7 +19,7 @@ export const main = Reach.App(() => {
     launched: Fun([Contract], Null),
   });
   const B = API('Buyer', {
-    buyTicket: Fun([UInt], Null),
+    purchase: Fun([UInt], Null),
     refund: Fun([], UInt),
   });
   init();
@@ -39,7 +39,7 @@ export const main = Reach.App(() => {
     .invariant(balance() == total, "network token balance wrong")
     .invariant(balance(tok) == supply - ticketsSold, "non-network token balance wrong")
     .while(ticketsSold < supply)
-    .api_(B.buyTicket, (amount) => {
+    .api_(B.purchase, (amount) => {
       /**
        * is this actually useful? Given the loop exit condition, 
        * is there any possibility that this api could be called,
@@ -48,8 +48,8 @@ export const main = Reach.App(() => {
       check(ticketsSold != supply, "sorry, out of tickets");
       check(isNone(pMap[this]), "sorry, you are already in this list");
       /**
-       * this is entirely optional -- it is an extra restriction
-       * you are defining a try...catch for your SC
+       * this is entirely optional -- it is an extra restriction.
+       * We are defining a try...catch for your SC
        */
       check(amount >= min, "sorry, amount too low");
       return[[amount, [0, tok]], (ret) => {

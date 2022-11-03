@@ -24,8 +24,9 @@ const startBuyers = async () => {
 await ctcA.p.Admin({
   params: {
     tok: tickets.id,
-    cost: stdlib.parseCurrency(10),
+    //cost: stdlib.parseCurrency(10),
     supply: MAX,
+    amount: Math.floor(Math.random() * 100) + 1,
   },
   launched: async (contract) => {
     console.log(`Ready at contract: ${contract}`);

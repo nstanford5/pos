@@ -11,6 +11,7 @@
 export const main = Reach.App(() => {
   const A = Participant('Admin', {
     params: Object({
+      min: UInt,
       tok: Token,
       supply: UInt,
       amount: UInt,
@@ -19,14 +20,14 @@ export const main = Reach.App(() => {
   });
   const B = API('Buyer', {
     buyTicket: Fun([UInt], Null),
-    refund: Fun([], Null),
+    refund: Fun([], UInt),
   });
   init();
 
   A.only(() => {
-    const {tok, supply} = declassify(interact.params);
+    const {min, tok, supply} = declassify(interact.params);
   });
-  A.publish(tok, supply);
+  A.publish(min, tok, supply);
   commit();
   A.pay([[supply, tok]])
   A.interact.launched(getContract());
@@ -46,6 +47,11 @@ export const main = Reach.App(() => {
        */
       check(ticketsSold != supply, "sorry, out of tickets");
       check(isNone(pMap[this]), "sorry, you are already in this list");
+      /**
+       * this is entirely optional -- it is an extra restriction
+       * you are defining a try...catch for your SC
+       */
+      check(amount >= min, "sorry, amount too low");
       return[[amount, [0, tok]], (ret) => {
         pMap[this] = amount;
         transfer(1, tok).to(this);
@@ -58,7 +64,7 @@ export const main = Reach.App(() => {
       return[[0, [1, tok]], (ret) => {
         const paid = fromSome(pMap[this], 0);
         transfer(paid).to(this);
-        ret(null);
+        ret(paid);
         delete pMap[this];
         return[ticketsSold - 1, total - paid]
       }];
